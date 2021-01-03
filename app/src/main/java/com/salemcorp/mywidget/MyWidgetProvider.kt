@@ -9,8 +9,8 @@ import android.content.Intent
 import android.util.Log
 import android.widget.RemoteViews
 import okhttp3.*
+import okhttp3.internal.http.promisesBody
 import java.io.IOException
-import java.util.*
 
 
 
@@ -25,17 +25,18 @@ class MyWidgetProvider : AppWidgetProvider() {
             context,
             MyWidgetProvider::class.java
         )
-        lateinit var text : String
+        Log.e("========>", "LAUNCH")
         val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
         for (widgetId in allWidgetIds) {
-
             val remoteViews = RemoteViews(
                 context.packageName,
                 R.layout.widget_layout
             )
-            run(remoteViews)
-            Log.w("WidgetExample", text)
-
+            try {
+                get("/orgs/EpitechIT2020/repos")
+            } catch (e : IOException) {
+                e.printStackTrace();
+            }
             val intent = Intent(context, MyWidgetProvider::class.java)
             intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
@@ -48,15 +49,12 @@ class MyWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    override fun onReceive(context: Context?, intent: Intent?) {
-        super.onReceive(context, intent)
-
-    }
-
-    fun run(remoteViews : RemoteViews) {
+    fun get(route : String) {
         val request = Request.Builder()
-            .url("https://intra.epitech.eu")
-            .build()
+                .url(api + route + "?access_token=" + token)
+                .header("User-Agent", "OkHttp Headers.java")
+                .addHeader("accept", "application/vnd.github.v3+json")
+                .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -66,13 +64,18 @@ class MyWidgetProvider : AppWidgetProvider() {
             override fun onResponse(call: Call, response: Response) {
                 response.use {
                     if (!response.isSuccessful) throw IOException("Unexpected code $response")
-                    remoteViews.setTextViewText(R.id.update, response.body!!.string())
+                    Log.e("=====>", response.body!!.string())
                 }
             }
         })
     }
 
+
+//843e7b1e3bb15b678e93427df91f8737d81e0ddd
+
     companion object {
+        private const val api = "https://api.github.com"
+        private const val token = "843e7b1e3bb15b678e93427df91f8737d81e0ddd"
         private const val ACTION_CLICK = "ACTION_CLICK"
     }
 }
